@@ -1,0 +1,132 @@
+{
+    "labels": {
+        "name": "Contenus indexés",
+        "singular_name": "Contenu indexé",
+        "create_item": "Indexer un contenu",
+        "new_item": "Nouveau contenu",
+        "view_item": "Voir le contenu",
+        "edit_item": "Modifier le contenu",
+        "all_items": "Tous les contenus",
+        "menu_items": "Contenus indexés"
+    },
+    "properties": {
+        "id": {
+            "type": "id",
+            "mode": "custom"
+        },
+        "object_type": {
+            "type": "string",
+            "label": {
+                "fr": "Type d'objet",
+                "en": "Object Type"
+            }
+        },
+        "object_id": {
+            "type": "string",
+            "label": {
+                "fr": "ID de l'objet",
+                "en": "Object ID"
+            }
+        },
+        "content": {
+            "type": "text",
+            "label": {
+                "fr": "Contenu",
+                "en": "Content"
+            }
+        },
+        "slug": {
+            "type": "string",
+            "label": {
+                "fr": "URL / Permalien",
+                "en": "Slug"
+            }
+        },
+        "lang": {
+            "type": "string",
+            "label": {
+                "fr": "Langue",
+                "en": "Language"
+            }
+        }
+    },
+    "sources": {
+        "default": {
+            "table": "charcoal_search_indexes"
+        }
+    },
+    "default_source": "default",
+    "admin": {
+        "lists": {
+            "default": {
+                "properties": [
+                    "object_type",
+                    "object_id",
+                    "slug",
+                    "lang"
+                ],
+                "orders": [
+                    {
+                        "property": "position",
+                        "mode": "desc"
+                    }
+                ]
+            }
+        },
+        "default_list": "default",
+        "forms": {
+            "default": {
+                "groups": {
+                    "info": {
+                        "title": "Contenu",
+                        "layout": {
+                            "structure": [
+                                {
+                                    "columns": [1, 1, 1, 1]
+                                }, {
+                                    "columns": [1]
+                                }
+                            ]
+                        },
+                        "properties": [
+                            "object_id",
+                            "object_type",
+                            "slug",
+                            "lang",
+                            "content"
+                        ],
+                        "priority": 100
+                    }
+                },
+                "sidebars": {
+                    "actions": {}
+                }
+            }
+        },
+        "default_form": "default",
+        "dashboards": {
+            "admin.edit": {
+                "widgets": {
+                    "form": {
+                        "type": "charcoal/admin/widget/object-form",
+                        "form_ident": "default",
+                        "obj_type": "charcoal/search/object/index-content"
+                    }
+                }
+            },
+            "admin.table": {
+                "widgets": {
+                    "table": {
+                        "type": "charcoal/admin/widget/table",
+                        "collection_ident": "default",
+                        "obj_type": "charcoal/search/object/index-content",
+                        "priority": 20
+                    }
+                }
+            }
+        },
+        "default_create_dashboard": "admin.edit",
+        "default_edit_dashboard": "admin.edit",
+        "default_collection_dashboard": "admin.table"
+    }
+}
