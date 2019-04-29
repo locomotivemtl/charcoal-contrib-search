@@ -49,31 +49,31 @@ $ composer require locomotivemtl/charcoal-contrib-search
 -   [**charcoal-contrib-sitemap**](https://github.com/locomotivemtl/charcoal-contrib-sitemap): >=0.1.5
 
 
-#### PSR
-
---TBD--
-
-
-## Service Provider
-
-### Parameters
-
---TBD--
-
-
-### Services
-
---TBD--
-
-
 ## Configuration
 
---TBD--
-
+In your project's config file, require the notification module : 
+```json
+{
+    "modules": {
+        "charcoal/search/search": {}
+    }
+}
+```
 
 ## Usage
 
---TBD--
+The module adds a `search` route action using GET. You may access http://project-url.com/search?keyword=[keyword].
+You won't get any results until you run the IndexContent Script.
+
+
+Before running the script, you need to setup 
+
+```
+// Once a day at midnight
+// You need to precise the base URL as it won'T be provided by the cli
+0 0 * * * cd /[project]/web && /usr/local/bin/php /[project]/web/vendor/bin/charcoal admin/search/index-content -u http://project-url.com/
+```
+
 
 
 

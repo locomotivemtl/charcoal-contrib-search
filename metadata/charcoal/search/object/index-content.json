@@ -10,10 +10,6 @@
         "menu_items": "Contenus indexés"
     },
     "properties": {
-        "id": {
-            "type": "id",
-            "mode": "custom"
-        },
         "object_type": {
             "type": "string",
             "label": {
@@ -30,13 +26,22 @@
         },
         "content": {
             "type": "text",
+            "long": true,
             "label": {
                 "fr": "Contenu",
                 "en": "Content"
             }
         },
+        "description": {
+            "type": "text",
+            "label": {
+                "fr": "Meta description",
+                "en": "Description meta"
+            }
+        },
         "slug": {
-            "type": "string",
+            "mode": "custom",
+            "type": "id",
             "label": {
                 "fr": "URL / Permalien",
                 "en": "Slug"
@@ -49,6 +54,9 @@
                 "en": "Language"
             }
         }
+    },
+    "default_data": {
+        "key": "slug"
     },
     "sources": {
         "default": {
@@ -63,12 +71,21 @@
                     "object_type",
                     "object_id",
                     "slug",
+                    "description",
                     "lang"
                 ],
                 "orders": [
                     {
-                        "property": "position",
-                        "mode": "desc"
+                        "property": "lang",
+                        "mode": "asc"
+                    },
+                    {
+                        "property": "object_type",
+                        "mode": "asc"
+                    },
+                    {
+                        "property": "object_id",
+                        "mode": "asc"
                     }
                 ]
             }

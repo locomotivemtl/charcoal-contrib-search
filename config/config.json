@@ -1,0 +1,12 @@
+{
+    "metadata": {
+        "paths": [
+            "vendor/locomotivemtl/charcoal-contrib-search/metadata/"
+        ]
+    },
+    "view": {
+        "paths": [
+            "vendor/locomotivemtl/charcoal-contrib-search/views/"
+        ]
+    }
+}

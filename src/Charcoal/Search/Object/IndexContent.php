@@ -33,11 +33,31 @@ class IndexContent extends Content
     protected $content;
 
     /**
+     * Description meta
+     *
+     * @var string
+     */
+    protected $description;
+
+    /**
      * Web page lang
      *
      * @var string
      */
     protected $lang;
+
+    /**
+     * @param array|null $data Dependencies.
+     */
+    public function __construct(array $data = null)
+    {
+        parent::__construct($data);
+
+        $defaultData = $this->metadata()->defaultData();
+        if ($defaultData) {
+            $this->setData($defaultData);
+        }
+    }
 
     /**
      * @return string
@@ -109,6 +129,42 @@ class IndexContent extends Content
     public function setContent($content)
     {
         $this->content = $content;
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function description()
+    {
+        return $this->description;
+    }
+
+    /**
+     * @param string $description
+     * @return IndexContent
+     */
+    public function setDescription($description)
+    {
+        $this->description = $description;
+        return $this;
+    }
+    
+    /**
+     * @return string
+     */
+    public function slug()
+    {
+        return $this->slug;
+    }
+
+    /**
+     * @param string $slug
+     * @return IndexContent
+     */
+    public function setSlug($slug)
+    {
+        $this->slug = $slug;
         return $this;
     }
 

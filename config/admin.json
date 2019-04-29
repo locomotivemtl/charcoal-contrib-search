@@ -1,0 +1,15 @@
+{
+    "admin": {
+        "routes": {
+            "scripts": {
+                "search/index-content":{
+                    "ident": "charcoal/search/script/index-content"
+                }
+            }
+        },
+        "system_menu": {
+            "items": {
+            }
+        }
+    }
+}

@@ -2,15 +2,13 @@
 
 namespace Charcoal\Search\Script;
 
+use Charcoal\App\Script\AbstractScript as CharcoalScript;
 use Charcoal\Loader\CollectionLoaderAwareTrait;
 use Charcoal\Model\ModelFactoryTrait;
 use Charcoal\Search\Object\IndexContent;
+use Charcoal\Search\Service\CrawlerService;
 use Charcoal\Sitemap\Mixin\SitemapBuilderAwareTrait;
-use GuzzleHttp\Client;
 use Pimple\Container;
-
-// From 'charcoal-app'
-use Charcoal\App\Script\AbstractScript as CharcoalScript;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 
@@ -28,9 +26,9 @@ class IndexContentScript extends CharcoalScript
     protected $sitemap;
 
     /**
-     * @var mixed
+     * @var CrawlerService
      */
-    protected $baseUrl;
+    protected $crawler;
 
     /**
      * @param  Container $container The DI container.
@@ -41,7 +39,7 @@ class IndexContentScript extends CharcoalScript
         $this->setModelFactory($container['model/factory']);
         $this->setCollectionLoader($container['model/collection/loader']);
         $this->setSitemapBuilder($container['charcoal/sitemap/builder']);
-        $this->baseUrl = $container['base-url'];
+        $this->setCrawler($container['search/crawler']);
 
         parent::setDependencies($container);
     }
@@ -55,11 +53,17 @@ class IndexContentScript extends CharcoalScript
     public function defaultArguments()
     {
         $arguments = [
-            'config' => [
-                'prefix' => 'c',
-                'longPrefix'  => 'config',
-                'description' => 'The sitemap builder key.',
+            'config'   => [
+                'prefix'       => 'c',
+                'longPrefix'   => 'config',
+                'description'  => 'The sitemap builder key.',
                 'defaultValue' => 'xml'
+            ],
+            'base_url' => [
+                'prefix'      => 'u',
+                'longPrefix'  => 'url',
+                'description' => 'Base URL',
+                'required'    => true
             ]
         ];
 
@@ -80,26 +84,126 @@ class IndexContentScript extends CharcoalScript
     {
         unset($request);
 
-        $sitemap   = $this->sitemapBuilder->build('xml');
+        $proto = $this->modelFactory()->create(IndexContent::class);
 
-        foreach ($sitemap as $map) {
-            foreach ($map as $object) {
-                $url = $object['url'];
-
-                $client = new Client();
-                $res = $client->request('GET', $url);
-
-                if ($res->getStatusCode() === 200) {
-                    $index = $this->modelFactory()->create(IndexContent::class);
-                    $index->setLang($object['lang']);
-                    $index->setSlug($url);
-                    $index->setObjectType($object['data']['objType']);
-                    $index->setObjectId($object['data']['objId']);
-                    $index->setContent($res->getBody());
-                }
-            }
+        if (!$proto->source()->tableExists()) {
+            $this->createTable($proto);
         }
 
+        $proto->source()->dbQuery(strtr(
+            'DELETE FROM `%table`',
+            [
+                '%table' => $proto->source()->table()
+            ]
+        ));
+
+        $baseUrl = $this->climate()->arguments->get('base_url');
+        $sitemapKey = $this->climate()->arguments->get('config');
+        $this->crawler()->setBaseUrl($baseUrl);
+
+        $that    = $this;
+        $sitemap = $this->crawler()->crawl($sitemapKey, function ($res, $object) use ($that) {
+
+            $url = ltrim($object['url'], '/');
+
+            $that->climate()->green()->out(strtr(
+                'Indexing page <white>%url</white> from object <white>%objectType</white> - <white>%objectId</white>',
+                [
+                    '%url'        => $url,
+                    '%objectType' => $object['data']['objType'],
+                    '%objectId'   => $object['data']['id']
+                ]
+            ));
+
+            $body = $res->getBody();
+
+            // Get metas
+            $doc = new \DOMDocument();
+            // Prevents DOMDocument to assume HTML4
+            libxml_use_internal_errors(true);
+            $doc->loadHTML($body);
+            libxml_use_internal_errors(false);
+            $xpath = new \DOMXPath($doc);
+            $nodes = $xpath->query('//head/meta');
+
+            $description = '';
+            foreach ($nodes as $node) {
+                if ($node->getAttribute('name') === 'description') {
+                    $description = $node->getAttribute('content');
+                    break;
+                }
+            }
+
+            $index = $this->modelFactory()->create(IndexContent::class);
+
+            $content = $this->cleanHtml($body);
+
+            $index->load($url);
+
+            $index->setLang($object['lang']);
+            $index->setObjectType($object['data']['objType']);
+            $index->setObjectId($object['data']['id']);
+            $index->setContent($content);
+            $index->setDescription($description);
+
+            if (!$index->id()) {
+                $index->setSlug($url);
+                $index->save();
+            }
+
+        });
         return $response;
     }
+
+    /**
+     * Clean content from unnecessary content
+     *
+     * @param $content
+     * @return null|string|string[]
+     */
+    private function cleanHtml($content)
+    {
+        $html = preg_replace('#<script(.*?)>(.*?)</script>#is', '', $content);
+        $html = preg_replace('#<style[^>]*?>.*?</style>#is', '', $html);
+        $html = strip_tags($html);
+        $html = preg_replace('!\s+!', ' ', $html);
+
+        return $html;
+    }
+
+    /**
+     * Creates table and adds index
+     *
+     * @param $proto
+     */
+    protected function createTable($proto)
+    {
+        $proto->source()->createTable();
+
+        $q = strtr('ALTER TABLE `%table` ADD FULLTEXT(content)',
+            [
+                '%table' => $proto->source()->table()
+            ]);
+
+        $proto->source()->dbQuery($q);
+    }
+
+    /**
+     * @return CrawlerService
+     */
+    public function crawler()
+    {
+        return $this->crawler;
+    }
+
+    /**
+     * @param CrawlerService $crawler
+     * @return IndexContentScript
+     */
+    public function setCrawler($crawler)
+    {
+        $this->crawler = $crawler;
+        return $this;
+    }
+
 }
