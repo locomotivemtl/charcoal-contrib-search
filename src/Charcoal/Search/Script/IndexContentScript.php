@@ -88,6 +88,11 @@ class IndexContentScript extends CharcoalScript
 
         if (!$proto->source()->tableExists()) {
             $this->createTable($proto);
+            $proto->source()->dbQuery(
+                strtr('ALTER TABLE `%table` ADD FULLTEXT (`content`)', [
+                    '%table' => $proto->source()->table()
+                ])
+            );
         }
 
         $proto->source()->dbQuery(strtr(
@@ -96,6 +101,7 @@ class IndexContentScript extends CharcoalScript
                 '%table' => $proto->source()->table()
             ]
         ));
+
 
         $baseUrl = $this->climate()->arguments->get('base_url');
         $sitemapKey = $this->climate()->arguments->get('config');
@@ -151,6 +157,17 @@ class IndexContentScript extends CharcoalScript
                 $index->save();
             }
 
+        }, function ($object) use ($that) {
+            $that->climate()->red()->out(
+                strtr(
+                    'Error crawling object <white>%type</white> - <white>%id</white> with URL <white>%url</white>',
+                    [
+                        '%url' => $object['url'],
+                        '%id' => $object['data']['id'],
+                        '%type' => $object['data']['objType']
+                    ]
+                )
+            );
         });
         return $response;
     }

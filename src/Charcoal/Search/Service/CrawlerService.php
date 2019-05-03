@@ -49,19 +49,25 @@ class CrawlerService
      * Callable called on each objects
      *
      * @param string   $configIdent
-     * @param callable $callable
+     * @param callable $success
+     * @param callable $failure
      */
-    public function crawl($configIdent, $callable)
+    public function crawl($configIdent, $success, $failure)
     {
+        $this->sitemapBuilder->setBaseUrl($this->baseUrl());
         $sitemap = $this->sitemapBuilder->build($configIdent);
 
         foreach ($sitemap as $map) {
             foreach ($map as $object) {
-                $url = $object['url'];
+                $url = ltrim($object['url'], '/');
                 $res = $this->get($url);
                 if ($res) {
-                    if (is_callable($callable)) {
-                        call_user_func($callable, $res, $object);
+                    if (is_callable($success)) {
+                        call_user_func($success, $res, $object);
+                    }
+                } else {
+                    if (is_callable($failure)) {
+                        call_user_func($failure, $object);
                     }
                 }
             }
@@ -77,9 +83,13 @@ class CrawlerService
     {
         $url     = ltrim($url, '/');
         $client  = new Client();
-        $baseUrl = $this->baseUrl();
+
+        if (null === parse_url($url, PHP_URL_SCHEME)) {
+            $url = $this->baseUrl() . $url;
+        }
+
         try {
-            $res = $client->request('GET', $baseUrl . $url);
+            $res = $client->request('GET', $url);
         } catch (\Exception $e) {
             return false;
         }
