@@ -67,6 +67,4 @@ class SearchModule extends AbstractModule
         });
 
     }
-
-
 }

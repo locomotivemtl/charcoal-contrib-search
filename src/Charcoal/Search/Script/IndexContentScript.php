@@ -31,6 +31,16 @@ class IndexContentScript extends CharcoalScript
     protected $crawler;
 
     /**
+     * @var string
+     */
+    protected $noIndexClass;
+
+    /**
+     * @var string
+     */
+    protected $indexElementId;
+
+    /**
      * @param  Container $container The DI container.
      * @return void
      */
@@ -64,6 +74,17 @@ class IndexContentScript extends CharcoalScript
                 'longPrefix'  => 'url',
                 'description' => 'Base URL',
                 'required'    => true
+            ],
+            'no_index_class' => [
+                'prefix'      => 'n',
+                'longPrefix'  => 'no_index_class',
+                'description' => 'Class that help excluding content from the search index. Used mostly on navigations, header and footer.',
+                'defaultValue' => 'php_no-index'
+            ],
+            'index_element_id' => [
+                'prefix'      => 'i',
+                'longPrefix'  => 'index_element_id',
+                'description' => 'Id of the main element to be indexed. (Defaults to entire body)'
             ]
         ];
 
@@ -103,73 +124,108 @@ class IndexContentScript extends CharcoalScript
         ));
 
 
-        $baseUrl = $this->climate()->arguments->get('base_url');
+        $baseUrl    = $this->climate()->arguments->get('base_url');
         $sitemapKey = $this->climate()->arguments->get('config');
+
+        $this->setIndexElementId($this->climate()->arguments->get('index_element_id'));
+        $this->setNoIndexClass($this->climate()->arguments->get('no_index_class'));
+
         $this->crawler()->setBaseUrl($baseUrl);
 
-        $that    = $this;
-        $sitemap = $this->crawler()->crawl($sitemapKey, function ($res, $object) use ($that) {
+        $sitemap = $this->crawler()->crawl(
+            $sitemapKey,
+            [$this, 'indexContent'],
+            [$this, 'errorIndexing']
+        );
 
-            $url = ltrim($object['url'], '/');
-
-            $that->climate()->green()->out(strtr(
-                'Indexing page <white>%url</white> from object <white>%objectType</white> - <white>%objectId</white>',
-                [
-                    '%url'        => $url,
-                    '%objectType' => $object['data']['objType'],
-                    '%objectId'   => $object['data']['id']
-                ]
-            ));
-
-            $body = $res->getBody();
-
-            // Get metas
-            $doc = new \DOMDocument();
-            // Prevents DOMDocument to assume HTML4
-            libxml_use_internal_errors(true);
-            $doc->loadHTML($body);
-            libxml_use_internal_errors(false);
-            $xpath = new \DOMXPath($doc);
-            $nodes = $xpath->query('//head/meta');
-
-            $description = '';
-            foreach ($nodes as $node) {
-                if ($node->getAttribute('name') === 'description') {
-                    $description = $node->getAttribute('content');
-                    break;
-                }
-            }
-
-            $index = $this->modelFactory()->create(IndexContent::class);
-
-            $content = $this->cleanHtml($body);
-
-            $index->load($url);
-
-            $index->setLang($object['lang']);
-            $index->setObjectType($object['data']['objType']);
-            $index->setObjectId($object['data']['id']);
-            $index->setContent($content);
-            $index->setDescription($description);
-
-            if (!$index->id()) {
-                $index->setSlug($url);
-                $index->save();
-            }
-
-        }, function ($object) use ($that) {
-            $that->climate()->red()->out(
-                strtr(
-                    'Error crawling object <white>%type</white> - <white>%id</white> with URL <white>%url</white>',
-                    [
-                        '%url' => $object['url'],
-                        '%id' => $object['data']['id'],
-                        '%type' => $object['data']['objType']
-                    ]
-                )
-            );
-        });
         return $response;
+    }
+
+    /**
+     * @param $object
+     */
+    public function errorIndexing($object)
+    {
+        $this->climate()->red()->out(
+            strtr(
+                'Error crawling object <white>%type</white> - <white>%id</white> with URL <white>%url</white>',
+                [
+                    '%url'  => $object['url'],
+                    '%id'   => $object['data']['id'],
+                    '%type' => $object['data']['objType']
+                ]
+            )
+        );
+    }
+
+    /**
+     * @param $res
+     * @param $object
+     */
+    public function indexContent($res, $object)
+    {
+        $url = ltrim($object['url'], '/');
+
+        $this->climate()->green()->out(strtr(
+            'Indexing page <white>%url</white> from object <white>%objectType</white> - <white>%objectId</white>',
+            [
+                '%url'        => $url,
+                '%objectType' => $object['data']['objType'],
+                '%objectId'   => $object['data']['id']
+            ]
+        ));
+
+        $body = $res->getBody();
+
+        // Get metas
+        $doc = new \DOMDocument();
+        // Prevents DOMDocument to assume HTML4
+        libxml_use_internal_errors(true);
+        $doc->loadHTML($body);
+        libxml_use_internal_errors(false);
+        $xpath = new \DOMXPath($doc);
+        $nodes = $xpath->query('//head/meta');
+
+        $description = '';
+        foreach ($nodes as $node) {
+            if ($node->getAttribute('name') === 'description') {
+                $description = $node->getAttribute('content');
+                break;
+            }
+        }
+
+        // Do not search in script tags.
+        foreach($xpath->query('//script') as $e ) {
+            $e->parentNode->removeChild($e);
+        }
+
+        foreach($xpath->query(sprintf('//*[contains(attribute::class, "%s")]', $this->noIndexClass())) as $e ) {
+            $e->parentNode->removeChild($e);
+        }
+        $doc->saveHTML($doc->documentElement);
+
+        // Default behavior is to take the entire body
+        if ($this->indexElementId()) {
+            $main = $doc->getElementById($this->indexElementId());
+        } else {
+            $main = $doc->getElementsByTagName('body');
+        }
+
+        $index = $this->modelFactory()->create(IndexContent::class);
+        $content = preg_replace('/\s+/', ' ', $main->textContent);
+
+        //
+        $index->load($url);
+        $index->setLang($object['lang']);
+        $index->setObjectType($object['data']['objType']);
+        $index->setObjectId($object['data']['id']);
+        $index->setContent($content);
+        $index->setDescription($description);
+
+        if (!$index->id()) {
+            $index->setSlug($url);
+            $index->save();
+        }
     }
 
     /**
@@ -220,6 +276,42 @@ class IndexContentScript extends CharcoalScript
     public function setCrawler($crawler)
     {
         $this->crawler = $crawler;
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function noIndexClass()
+    {
+        return $this->noIndexClass;
+    }
+
+    /**
+     * @param string $noIndexClass
+     * @return IndexContentScript
+     */
+    public function setNoIndexClass($noIndexClass)
+    {
+        $this->noIndexClass = $noIndexClass;
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function indexElementId()
+    {
+        return $this->indexElementId;
+    }
+
+    /**
+     * @param string $indexElementId
+     * @return IndexContentScript
+     */
+    public function setIndexElementId($indexElementId)
+    {
+        $this->indexElementId = $indexElementId;
         return $this;
     }
 

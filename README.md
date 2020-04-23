@@ -3,9 +3,6 @@ Charcoal Search
 
 [![License][badge-license]][charcoal-contrib-search]
 [![Latest Stable Version][badge-version]][charcoal-contrib-search]
-[![Code Quality][badge-scrutinizer]][dev-scrutinizer]
-[![Coverage Status][badge-coveralls]][dev-coveralls]
-[![Build Status][badge-travis]][dev-travis]
 
 A [Charcoal][charcoal-app] service provider my cool feature.
 
@@ -15,9 +12,6 @@ A [Charcoal][charcoal-app] service provider my cool feature.
 
 -   [Installation](#installation)
     -   [Dependencies](#dependencies)
--   [Service Provider](#service-provider)
-    -   [Parameters](#parameters)
-    -   [Services](#services)
 -   [Configuration](#configuration)
 -   [Usage](#usage)
 -   [Development](#development)
@@ -51,7 +45,7 @@ $ composer require locomotivemtl/charcoal-contrib-search
 
 ## Configuration
 
-In your project's config file, require the notification module : 
+In your project's config file, require the search module : 
 ```json
 {
     "modules": {
@@ -74,23 +68,13 @@ Before running the script, you need to setup
 0 0 * * * cd /[project]/web && /usr/local/bin/php /[project]/web/vendor/bin/charcoal admin/search/index-content -u http://project-url.com/
 ```
 
-
-
+### Parameters
+- `-u` (--url) Website URL. Necessary as this is run in a cron script.
+- `-c` (--config) Sitemap builder key (Defaults to `xml`)
+- `-n` (--no_index_class) Class to filter out content from the crawled pages. Defaults to "php_no-index"
+- `-i` (--index_element_id) ID of the element to be indexed in the crawled page. Defaults to entire page body.
 
 ## Development
-
-To install the development environment:
-
-```shell
-$ composer install
-```
-
-To run the scripts (phplint, phpcs, and phpunit):
-
-```shell
-$ composer test
-```
-
 
 
 ### API Documentation
@@ -99,7 +83,6 @@ $ composer test
     [https://locomotivemtl.github.io/charcoal-contrib-search/docs/master/](https://locomotivemtl.github.io/charcoal-contrib-search/docs/master/)
 -   The auto-generated `apigen` API documentation is available at:  
     [https://codedoc.pub/locomotivemtl/charcoal-contrib-search/master/](https://codedoc.pub/locomotivemtl/charcoal-contrib-search/master/index.html)
-
 
 
 ### Development Dependencies
@@ -123,17 +106,14 @@ The charcoal-contrib-search module follows the Charcoal coding-style:
 > Coding style validation / enforcement can be performed with `composer phpcs`. An auto-fixer is also available with `composer phpcbf`.
 
 
-
 ## Credits
 
 -   [Locomotive](https://locomotive.ca/)
 
 
-
 ## License
 
 Charcoal is licensed under the MIT license. See [LICENSE](LICENSE) for details.
-
 
 
 [charcoal-contrib-search]:  https://packagist.org/packages/locomotivemtl/charcoal-contrib-search
@@ -145,9 +125,6 @@ Charcoal is licensed under the MIT license. See [LICENSE](LICENSE) for details.
 
 [badge-license]:      https://img.shields.io/packagist/l/locomotivemtl/charcoal-contrib-search.svg?style=flat-square
 [badge-version]:      https://img.shields.io/packagist/v/locomotivemtl/charcoal-contrib-search.svg?style=flat-square
-[badge-scrutinizer]:  https://img.shields.io/scrutinizer/g/locomotivemtl/charcoal-contrib-search.svg?style=flat-square
-[badge-coveralls]:    https://img.shields.io/coveralls/locomotivemtl/charcoal-contrib-search.svg?style=flat-square
-[badge-travis]:       https://img.shields.io/travis/locomotivemtl/charcoal-contrib-search.svg?style=flat-square
 
 [psr-1]:  https://www.php-fig.org/psr/psr-1/
 [psr-2]:  https://www.php-fig.org/psr/psr-2/

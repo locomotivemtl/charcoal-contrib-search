@@ -77,6 +77,7 @@ class CrawlerService
 
     /**
      * @param $url
+     * @return bool|mixed|\Psr\Http\Message\ResponseInterface
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
     public function get($url)
