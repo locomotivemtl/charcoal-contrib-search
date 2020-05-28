@@ -208,7 +208,7 @@ class IndexContentScript extends CharcoalScript
         if ($this->indexElementId()) {
             $main = $doc->getElementById($this->indexElementId());
         } else {
-            $main = $doc->getElementsByTagName('body');
+            $main = $doc->getElementsByTagName('body')[0];
         }
 
         $index = $this->modelFactory()->create(IndexContent::class);
@@ -220,6 +220,7 @@ class IndexContentScript extends CharcoalScript
         $index->setObjectType($object['data']['objType']);
         $index->setObjectId($object['data']['id']);
         $index->setContent($content);
+
         $index->setDescription($description);
 
         if (!$index->id()) {
