@@ -33,6 +33,13 @@ class IndexContent extends Content
     protected $content;
 
     /**
+     * Document title
+     *
+     * @var string
+     */
+    protected $title;
+
+    /**
      * Description meta
      *
      * @var string
@@ -135,6 +142,24 @@ class IndexContent extends Content
     /**
      * @return string
      */
+    public function title()
+    {
+        return $this->title;
+    }
+
+    /**
+     * @param string $title
+     * @return IndexContent
+     */
+    public function setTitle(string $title)
+    {
+        $this->title = $title;
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
     public function description()
     {
         return $this->description;
@@ -149,7 +174,7 @@ class IndexContent extends Content
         $this->description = $description;
         return $this;
     }
-    
+
     /**
      * @return string
      */

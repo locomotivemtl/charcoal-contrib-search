@@ -41,7 +41,7 @@ class IndexContentScript extends CharcoalScript
     protected $indexElementId;
 
     /**
-     * @param  Container $container The DI container.
+     * @param Container $container The DI container.
      * @return void
      */
     public function setDependencies(Container $container)
@@ -63,24 +63,27 @@ class IndexContentScript extends CharcoalScript
     public function defaultArguments()
     {
         $arguments = [
-            'config'   => [
+            'config' => [
                 'prefix'       => 'c',
                 'longPrefix'   => 'config',
                 'description'  => 'The sitemap builder key.',
                 'defaultValue' => 'xml'
             ],
+
             'base_url' => [
                 'prefix'      => 'u',
                 'longPrefix'  => 'url',
                 'description' => 'Base URL',
                 'required'    => true
             ],
+
             'no_index_class' => [
-                'prefix'      => 'n',
-                'longPrefix'  => 'no_index_class',
-                'description' => 'Class that help excluding content from the search index. Used mostly on navigations, header and footer.',
+                'prefix'       => 'n',
+                'longPrefix'   => 'no_index_class',
+                'description'  => 'Class that help excluding content from the search index. Used mostly on navigations, header and footer.',
                 'defaultValue' => 'php_no-index'
             ],
+
             'index_element_id' => [
                 'prefix'      => 'i',
                 'longPrefix'  => 'index_element_id',
@@ -109,11 +112,6 @@ class IndexContentScript extends CharcoalScript
 
         if (!$proto->source()->tableExists()) {
             $this->createTable($proto);
-            $proto->source()->dbQuery(
-                strtr('ALTER TABLE `%table` ADD FULLTEXT (`content`)', [
-                    '%table' => $proto->source()->table()
-                ])
-            );
         }
 
         $proto->source()->dbQuery(strtr(
@@ -166,10 +164,14 @@ class IndexContentScript extends CharcoalScript
     {
         $url = ltrim($object['url'], '/');
 
+        if (!$url) {
+            $url = '/';
+        }
+
         $this->climate()->green()->out(strtr(
             'Indexing page <white>%url</white> from object <white>%objectType</white> - <white>%objectId</white>',
             [
-                '%url'        => $url,
+                '%url'        => $object['url'],
                 '%objectType' => $object['data']['objType'],
                 '%objectId'   => $object['data']['id']
             ]
@@ -183,8 +185,14 @@ class IndexContentScript extends CharcoalScript
         libxml_use_internal_errors(true);
         $doc->loadHTML($body);
         libxml_use_internal_errors(false);
-        $xpath = new \DOMXPath($doc);
-        $nodes = $xpath->query('//head/meta');
+        $xpath     = new \DOMXPath($doc);
+        $nodes     = $xpath->query('//head/meta');
+        $titleNode = $doc->getElementsByTagName('title')[0];
+
+        $title = '';
+        if ($titleNode) {
+            $title = $titleNode->textContent;
+        }
 
         $description = '';
         foreach ($nodes as $node) {
@@ -195,11 +203,11 @@ class IndexContentScript extends CharcoalScript
         }
 
         // Do not search in script tags.
-        foreach($xpath->query('//script') as $e ) {
+        foreach ($xpath->query('//script') as $e) {
             $e->parentNode->removeChild($e);
         }
 
-        foreach($xpath->query(sprintf('//*[contains(attribute::class, "%s")]', $this->noIndexClass())) as $e ) {
+        foreach ($xpath->query(sprintf('//*[contains(attribute::class, "%s")]', $this->noIndexClass())) as $e) {
             $e->parentNode->removeChild($e);
         }
         $doc->saveHTML($doc->documentElement);
@@ -211,7 +219,20 @@ class IndexContentScript extends CharcoalScript
             $main = $doc->getElementsByTagName('body')[0];
         }
 
-        $index = $this->modelFactory()->create(IndexContent::class);
+        if (!$main) {
+            $this->climate()->red(
+                'Error indexing page <white>%url</white> from object <white>%objectType</white> - <white>%objectId</white>. %details',
+                [
+                    '%url'        => $object['url'],
+                    '%objectType' => $object['data']['objType'],
+                    '%objectId'   => $object['data']['id'],
+                    '%details'    => $this->indexElementId() ? sprintf('Unexisting document element for ID %s.', $this->indexElementId()) : 'Body tag not found.'
+                ]
+            );
+            return;
+        }
+
+        $index   = $this->modelFactory()->create(IndexContent::class);
         $content = preg_replace('/\s+/', ' ', $main->textContent);
 
         //
@@ -220,7 +241,7 @@ class IndexContentScript extends CharcoalScript
         $index->setObjectType($object['data']['objType']);
         $index->setObjectId($object['data']['id']);
         $index->setContent($content);
-
+        $index->setTitle($title);
         $index->setDescription($description);
 
         if (!$index->id()) {
@@ -254,10 +275,25 @@ class IndexContentScript extends CharcoalScript
     {
         $proto->source()->createTable();
 
-        $q = strtr('ALTER TABLE `%table` ADD FULLTEXT(content)',
+        // Add fulltext index on all separate column in order to allow a weighted search
+        // Normal search should only occur on `content` as it is the entire indexable textual
+        // content of the page and should therefore have the title in it.
+        $q = strtr('ALTER TABLE `%table` ADD FULLTEXT(`content`)',
             [
                 '%table' => $proto->source()->table()
             ]);
+
+        $proto->source()->dbQuery(
+            strtr('ALTER TABLE `%table` ADD FULLTEXT (`title`)', [
+                '%table' => $proto->source()->table()
+            ])
+        );
+
+        $proto->source()->dbQuery(
+            strtr('ALTER TABLE `%table` ADD FULLTEXT (`description`)', [
+                '%table' => $proto->source()->table()
+            ])
+        );
 
         $proto->source()->dbQuery($q);
     }

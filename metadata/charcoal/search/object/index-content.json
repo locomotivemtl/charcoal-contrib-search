@@ -32,6 +32,13 @@
                 "en": "Content"
             }
         },
+        "title": {
+            "type": "text",
+            "label": {
+                "fr": "Titre méta",
+                "en": "Title meta"
+            }
+        },
         "description": {
             "type": "text",
             "label": {
@@ -71,6 +78,7 @@
                     "object_type",
                     "object_id",
                     "slug",
+                    "title",
                     "description",
                     "lang"
                 ],
