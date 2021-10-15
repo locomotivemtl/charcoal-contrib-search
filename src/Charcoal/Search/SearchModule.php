@@ -22,7 +22,6 @@ class SearchModule extends AbstractModule
      */
     public function setup()
     {
-
         $container = $this->app()->getContainer();
 
         $this->setupPublicRoutes();
@@ -52,10 +51,13 @@ class SearchModule extends AbstractModule
         $container = $this->app()->getContainer();
 
         $this->app()->map($config['methods'], $config['route'], function (
-            RequestInterface $request,
+            RequestInterface  $request,
             ResponseInterface $response,
-            array $args = []) use ($config, $container) {
-
+            array             $args = []
+        ) use (
+            $config,
+            $container
+        ) {
             $routeController = $this['route/controller/action/class'];
 
             $route = $container['route/factory']->create($routeController, [
@@ -65,6 +67,5 @@ class SearchModule extends AbstractModule
 
             return $route($this, $request, $response);
         });
-
     }
 }

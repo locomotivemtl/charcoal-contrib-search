@@ -80,7 +80,8 @@ class IndexContentScript extends CharcoalScript
             'no_index_class' => [
                 'prefix'       => 'n',
                 'longPrefix'   => 'no_index_class',
-                'description'  => 'Class that help excluding content from the search index. Used mostly on navigations, header and footer.',
+                'description'  => 'Class that help excluding content from the search index. ' +
+                    'Used mostly on navigations, header and footer.',
                 'defaultValue' => 'php_no-index'
             ],
 
@@ -120,7 +121,6 @@ class IndexContentScript extends CharcoalScript
                 '%table' => $proto->source()->table()
             ]
         ));
-
 
         $baseUrl    = $this->climate()->arguments->get('base_url');
         $sitemapKey = $this->climate()->arguments->get('config');
@@ -221,12 +221,16 @@ class IndexContentScript extends CharcoalScript
 
         if (!$main) {
             $this->climate()->red(
-                'Error indexing page <white>%url</white> from object <white>%objectType</white> - <white>%objectId</white>. %details',
+                'Error indexing page <white>%url</white> from object <white>%objectType</white> - '
+                + '<white>%objectId</white>. %details',
                 [
                     '%url'        => $object['url'],
                     '%objectType' => $object['data']['objType'],
                     '%objectId'   => $object['data']['id'],
-                    '%details'    => $this->indexElementId() ? sprintf('Unexisting document element for ID %s.', $this->indexElementId()) : 'Body tag not found.'
+                    '%details'    => $this->indexElementId() ? sprintf(
+                        'Unexisting document element for ID %s.',
+                        $this->indexElementId()
+                    ) : 'Body tag not found.'
                 ]
             );
             return;
@@ -235,7 +239,7 @@ class IndexContentScript extends CharcoalScript
         $index   = $this->modelFactory()->create(IndexContent::class);
         $content = preg_replace('/\s+/', ' ', $main->textContent);
 
-        //
+        // Save indexed content to DB
         $index->load($url);
         $index->setLang($object['lang']);
         $index->setObjectType($object['data']['objType']);
@@ -278,24 +282,32 @@ class IndexContentScript extends CharcoalScript
         // Add fulltext index on all separate column in order to allow a weighted search
         // Normal search should only occur on `content` as it is the entire indexable textual
         // content of the page and should therefore have the title in it.
-        $q = strtr('ALTER TABLE `%table` ADD FULLTEXT(`content`)',
-            [
-                '%table' => $proto->source()->table()
-            ]);
-
-        $proto->source()->dbQuery(
-            strtr('ALTER TABLE `%table` ADD FULLTEXT (`title`)', [
-                '%table' => $proto->source()->table()
-            ])
+        $q = $proto->source()->dbQuery(
+            strtr(
+                'ALTER TABLE `%table` ADD FULLTEXT(`content`)',
+                [
+                    '%table' => $proto->source()->table()
+                ]
+            )
         );
 
         $proto->source()->dbQuery(
-            strtr('ALTER TABLE `%table` ADD FULLTEXT (`description`)', [
-                '%table' => $proto->source()->table()
-            ])
+            strtr(
+                'ALTER TABLE `%table` ADD FULLTEXT (`title`)',
+                [
+                    '%table' => $proto->source()->table()
+                ]
+            )
         );
 
-        $proto->source()->dbQuery($q);
+        $proto->source()->dbQuery(
+            strtr(
+                'ALTER TABLE `%table` ADD FULLTEXT (`description`)',
+                [
+                    '%table' => $proto->source()->table()
+                ]
+            )
+        );
     }
 
     /**
@@ -351,5 +363,4 @@ class IndexContentScript extends CharcoalScript
         $this->indexElementId = $indexElementId;
         return $this;
     }
-
 }

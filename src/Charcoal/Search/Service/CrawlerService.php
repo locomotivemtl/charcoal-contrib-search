@@ -72,7 +72,6 @@ class CrawlerService
                 }
             }
         }
-
     }
 
     /**
@@ -82,8 +81,8 @@ class CrawlerService
      */
     public function get($url)
     {
-        $url     = ltrim($url, '/');
-        $client  = new Client();
+        $url    = ltrim($url, '/');
+        $client = new Client();
 
         if (null === parse_url($url, PHP_URL_SCHEME)) {
             $url = $this->baseUrl() . $url;

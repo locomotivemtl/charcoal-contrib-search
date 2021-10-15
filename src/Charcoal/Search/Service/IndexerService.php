@@ -39,7 +39,7 @@ class IndexerService
      */
     public function setBaseUrl($baseUrl)
     {
-        $this->baseUrl = rtrim($baseUrl, '/') . '/';;
+        $this->baseUrl = rtrim($baseUrl, '/') . '/';
         return $this;
     }
 
@@ -52,7 +52,7 @@ class IndexerService
      */
     public function index($sitemapKey, $callable)
     {
-        $sitemap   = $this->sitemapBuilder()->build($sitemapKey);
+        $sitemap = $this->sitemapBuilder()->build($sitemapKey);
 
         // Make sure there's a slash at the end of the given URL
         $baseUrl = rtrim($this->baseUrl(), '/') . '/';
@@ -70,19 +70,19 @@ class IndexerService
                 $url = ltrim($object['url'], '/');
 
                 $this->climate()->green()->out(strtr(
-                    'Indexing page <white>%url</white> from object <white>%objectType</white> - <white>%objectId</white>',
+                    'Indexing page <white>%url</white> from object <white>%objectType</white> - ' +
+                    '<white>%objectId</white>',
                     [
-                        '%url' => $url,
+                        '%url'        => $url,
                         '%objectType' => $object['data']['objType'],
-                        '%objectId' => $object['data']['id']
+                        '%objectId'   => $object['data']['id']
                     ]
                 ));
 
                 $client = new Client();
-                $res = $client->request('GET', $baseUrl.$url);
+                $res    = $client->request('GET', $baseUrl . $url);
 
                 if ($res->getStatusCode() === 200) {
-
                     $index = $this->modelFactory()->create(IndexContent::class);
 
                     $content = $this->cleanHtml($res->getBody());
@@ -101,7 +101,5 @@ class IndexerService
                 }
             }
         }
-        
-        
     }
 }
