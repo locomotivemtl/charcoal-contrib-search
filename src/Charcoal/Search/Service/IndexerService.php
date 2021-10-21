@@ -70,7 +70,7 @@ class IndexerService
                 $url = ltrim($object['url'], '/');
 
                 $this->climate()->green()->out(strtr(
-                    'Indexing page <white>%url</white> from object <white>%objectType</white> - ' +
+                    'Indexing page <white>%url</white> from object <white>%objectType</white> - ' .
                     '<white>%objectId</white>',
                     [
                         '%url'        => $url,

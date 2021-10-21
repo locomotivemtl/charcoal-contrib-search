@@ -80,7 +80,7 @@ class IndexContentScript extends CharcoalScript
             'no_index_class' => [
                 'prefix'       => 'n',
                 'longPrefix'   => 'no_index_class',
-                'description'  => 'Class that help excluding content from the search index. ' +
+                'description'  => 'Class that help excluding content from the search index. ' .
                     'Used mostly on navigations, header and footer.',
                 'defaultValue' => 'php_no-index'
             ],
