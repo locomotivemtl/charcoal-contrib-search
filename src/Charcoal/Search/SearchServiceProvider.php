@@ -4,6 +4,7 @@ namespace Charcoal\Search;
 
 // local dependencies.
 use Charcoal\Search\Service\CrawlerService;
+use Charcoal\Search\Service\IndexerService;
 use Charcoal\Search\Service\SearchService;
 use Pimple\Container;
 use Pimple\ServiceProviderInterface;
@@ -33,8 +34,8 @@ class SearchServiceProvider implements ServiceProviderInterface
          */
         $container['search'] = function ($container) {
             return new SearchService([
-                'model/factory' => $container['model/factory'],
-                'model/collection/loader' => $container['model/collection/loader']
+                'model/factory'           => $container['model/factory'],
+                'model/collection/loader' => $container['model/collection/loader'],
             ]);
         };
 
@@ -43,7 +44,18 @@ class SearchServiceProvider implements ServiceProviderInterface
          */
         $container['search/crawler'] = function ($container) {
             return new CrawlerService([
-                'charcoal/sitemap/builder' => $container['charcoal/sitemap/builder']
+                'charcoal/sitemap/builder' => $container['charcoal/sitemap/builder'],
+            ]);
+        };
+        /**
+         * @return CrawlerService
+         */
+        $container['search/indexer'] = function ($container) {
+            return new IndexerService([
+                'translator'              => $container['translator'],
+                'search/crawler'          => $container['search/crawler'],
+                'model/factory'           => $container['model/factory'],
+                'model/collection/loader' => $container['model/collection/loader'],
             ]);
         };
     }

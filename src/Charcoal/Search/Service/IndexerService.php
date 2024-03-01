@@ -2,18 +2,30 @@
 
 namespace Charcoal\Search\Service;
 
+use Charcoal\Loader\CollectionLoaderAwareTrait;
+use Charcoal\Model\ModelFactoryTrait;
+use Charcoal\Object\RoutableInterface;
+use Charcoal\Search\Mixin\CrawlerAwareTrait;
 use Charcoal\Search\Object\IndexContent;
-use Charcoal\Sitemap\Mixin\SitemapBuilderAwareTrait;
-use GuzzleHttp\Client;
+use Charcoal\Translator\TranslatorAwareTrait;
+use Psr\Http\Message\ResponseInterface;
 
 class IndexerService
 {
-    use SitemapBuilderAwareTrait;
+    use CrawlerAwareTrait;
+    use TranslatorAwareTrait;
+    use ModelFactoryTrait;
+    use CollectionLoaderAwareTrait;
+
+    protected $siteConfig;
 
     /**
      * @var string
      */
     protected $baseUrl;
+
+    protected $noIndexClass;
+    protected $indexElementId;
 
     /**
      * IndexerService constructor.
@@ -22,7 +34,10 @@ class IndexerService
      */
     public function __construct($data)
     {
-        $this->setSitemapBuilder($container['charcoal/sitemap/builder']);
+        $this->setCrawler($data['search/crawler']);
+        $this->setTranslator($data['translator']);
+        $this->setModelFactory($data['model/factory']);
+        $this->setCollectionLoader($data['model/collection/loader']);
     }
 
     /**
@@ -44,61 +59,250 @@ class IndexerService
     }
 
     /**
-     * Key param is the key to the sitemap you want to index
+     * @return string
+     */
+    public function noIndexClass()
+    {
+        return $this->noIndexClass;
+    }
+
+    /**
+     * @param string $noIndexClass
+     * @return self
+     */
+    public function setNoIndexClass(string $noIndexClass)
+    {
+        $this->noIndexClass = $noIndexClass;
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function indexElementId()
+    {
+        return $this->indexElementId;
+    }
+
+    /**
+     * @param string $indexElementId
+     * @return self
+     */
+    public function setIndexElementId(string $indexElementId)
+    {
+        $this->indexElementId = $indexElementId;
+        return $this;
+    }
+
+
+    /**
+     * Allows the creation of an entry with the content of a specific model
      *
-     * @param $sitemapKey
-     * @param $callable
+     * @param RoutableInterface $model
+     * @return void
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function index($sitemapKey, $callable)
+    public function indexContentFromModel(RoutableInterface $model)
     {
-        $sitemap = $this->sitemapBuilder()->build($sitemapKey);
+        foreach ($this->translator()->availableLocales() as $locale) {
+            $res = $this->getCrawler()->get($model->url($locale));
+            if (!$res) {
+                continue;
+            }
+            $this->indexContent($res, [
+                'url'     => $model->url($locale),
+                'lang'    => $locale,
+                'objType' => $model::objType(),
+                'objId'   => $model->id()
+            ]);
+        }
+    }
 
-        // Make sure there's a slash at the end of the given URL
-        $baseUrl = rtrim($this->baseUrl(), '/') . '/';
+    /**
+     * @param $res
+     * @param $object ['url' => 'https://...', 'lang' => 'fr', 'objType' => '', 'objId' => '']
+     */
+    public function indexContent(ResponseInterface $res, $object)
+    {
+        $url = ltrim($object['url'], '/');
 
-        $proto = $this->modelFactory()->create(IndexContent::class);
-        $proto->source()->dbQuery(strtr(
-            'DELETE FROM `%table`',
-            [
-                '%table' => $proto->source()->table()
-            ]
-        ));
+        if (!$url) {
+            $url = '/';
+        }
 
-        foreach ($sitemap as $map) {
-            foreach ($map as $object) {
-                $url = ltrim($object['url'], '/');
+        $body = $res->getBody();
 
-                $this->climate()->green()->out(strtr(
-                    'Indexing page <white>%url</white> from object <white>%objectType</white> - ' .
-                    '<white>%objectId</white>',
-                    [
-                        '%url'        => $url,
-                        '%objectType' => $object['data']['objType'],
-                        '%objectId'   => $object['data']['id']
-                    ]
-                ));
+        // Getting meta tags
+        $doc = new \DOMDocument();
+        libxml_use_internal_errors(true); // Prevents DOMDocument to assume HTML4
+        $doc->loadHTML($body);
+        libxml_use_internal_errors(false);
+        $xpath     = new \DOMXPath($doc);
+        $nodes     = $xpath->query('//head/meta');
+        $titleNode = $doc->getElementsByTagName('title')[0];
 
-                $client = new Client();
-                $res    = $client->request('GET', $baseUrl . $url);
+        $title = '';
+        if ($titleNode) {
+            $title = $titleNode->textContent;
+        }
 
-                if ($res->getStatusCode() === 200) {
-                    $index = $this->modelFactory()->create(IndexContent::class);
+        $description = '';
+        foreach ($nodes as $node) {
+            if ($node->getAttribute('name') === 'description') {
+                $description = $node->getAttribute('content');
+                break;
+            }
+        }
 
-                    $content = $this->cleanHtml($res->getBody());
+        // Do not search in script tags.
+        foreach ($xpath->query('//script') as $e) {
+            $e->parentNode->removeChild($e);
+        }
 
-                    $index->load($url);
+        foreach ($xpath->query(sprintf('//*[contains(attribute::class, "%s")]', $this->noIndexClass())) as $e) {
+            $e->parentNode->removeChild($e);
+        }
+        $doc->saveHTML($doc->documentElement);
 
-                    $index->setLang($object['lang']);
-                    $index->setObjectType($object['data']['objType']);
-                    $index->setObjectId($object['data']['id']);
-                    $index->setContent($content);
+        // Default behavior is to take the entire body
+        if ($this->indexElementId()) {
+            $main = $doc->getElementById($this->indexElementId());
+        } else {
+            $main = $doc->getElementsByTagName('body')[0];
+        }
 
-                    if (!$index->id()) {
-                        $index->setSlug($url);
-                        $index->save();
-                    }
-                }
+        if (!$main) {
+            // Error
+            // If indexElementId() -> the element ID doesnt exist on the page
+            // Else, no body tag found
+
+            return;
+        }
+
+        $model = $this->modelFactory()->create($object['objType'])->load($object['objId']);
+        $index = $this->getIndexedContentFromModel($model);
+
+        $content = preg_replace('/\s+/', ' ', $main->textContent);
+
+        // Save indexed content to DB
+        $index->setLang($object['lang']);
+        $index->setObjectType($object['objType']);
+        $index->setObjectId($object['objId']);
+        $index->setContent($content);
+        $index->setTitle($title);
+        $index->setDescription($description);
+        $index->setSlug($url);
+
+        if (!$index->id()) {
+            $index->save();
+        } else {
+            $index->update();
+        }
+    }
+
+    /**
+     * Make sure the IndexContent model table exists
+     * Add index accordingly
+     *
+     * @return void
+     */
+    public function checkIndexContentTableExistance()
+    {
+        $model = $this->modelFactory()->create(IndexContent::class);
+
+        // Table already exists
+        if ($model->source()->tableExists()) {
+            return;
+        }
+
+        // Create table
+        $model->source()->createTable();
+
+        // Add fulltext index on all separate column in order to allow a weighted search
+        // Normal search should only occur on `content` as it is the entire indexable textual
+        // content of the page and should therefore have the title in it.
+        $q = $model->source()->dbQuery(
+            strtr(
+                'ALTER TABLE `%table` ADD FULLTEXT(`content`)',
+                [
+                    '%table' => $model->source()->table()
+                ]
+            )
+        );
+
+        $model->source()->dbQuery(
+            strtr(
+                'ALTER TABLE `%table` ADD FULLTEXT (`title`)',
+                [
+                    '%table' => $model->source()->table()
+                ]
+            )
+        );
+
+        $model->source()->dbQuery(
+            strtr(
+                'ALTER TABLE `%table` ADD FULLTEXT (`description`)',
+                [
+                    '%table' => $model->source()->table()
+                ]
+            )
+        );
+    }
+
+    /**
+     * @param RoutableInterface $model
+     * @return void
+     */
+    public function removeIndexedContentFromModel(RoutableInterface $model)
+    {
+        $model = $this->getIndexedContentFromModel($model);
+        if ($model->id()) {
+            $model->delete();
+        }
+    }
+
+    /**
+     * Retrieves indexed content from a model.
+     * IndexContent will either be an entry from the database or an empty entry
+     *
+     * @param mixed $model The model object from which to retrieve the indexed content.
+     * @return IndexContent The indexed content object.
+     */
+    public function getIndexedContentFromModel($model)
+    {
+        $index = $this->modelFactory()->create(IndexContent::class);
+
+        // Check if content already exists in the table
+        $q = 'SELECT * FROM `%table` WHERE object_type = \'%type\' AND object_id = \'%id\'';
+        $q = strtr($q, [
+            '%table' => $index->source()->table(),
+            '%type'  => $model->objType(),
+            '%id'    => $model->id()
+        ]);
+
+        $index->loadFromQuery($q);
+
+        return $index;
+    }
+
+    /**
+     * Cleanup outdated content indexes.
+     *
+     * This method removes outdated content indexes from the collection.
+     * An index is considered outdated if the associated model is not found,
+     * or the model is not an instance of RoutableInterface,
+     * or the model's route is not active.
+     *
+     * @return void
+     */
+    public function cleanupOutdatedContentIndexes()
+    {
+        $values = $this->collectionLoader()->setModel(IndexContent::class)->load()->values();
+        foreach ($values as $content)
+        {
+            $model = $this->modelFactory()->create($content['objectType'])->load($content['objectId']);
+            if (!$model->id() || !($model instanceof RoutableInterface) || !$model->isActiveRoute()) {
+                $content->delete();
             }
         }
     }

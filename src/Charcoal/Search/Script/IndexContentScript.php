@@ -5,8 +5,9 @@ namespace Charcoal\Search\Script;
 use Charcoal\App\Script\AbstractScript as CharcoalScript;
 use Charcoal\Loader\CollectionLoaderAwareTrait;
 use Charcoal\Model\ModelFactoryTrait;
+use Charcoal\Search\Mixin\CrawlerAwareTrait;
+use Charcoal\Search\Mixin\IndexerAwareTrait;
 use Charcoal\Search\Object\IndexContent;
-use Charcoal\Search\Service\CrawlerService;
 use Charcoal\Sitemap\Mixin\SitemapBuilderAwareTrait;
 use Pimple\Container;
 use Psr\Http\Message\RequestInterface;
@@ -19,16 +20,13 @@ class IndexContentScript extends CharcoalScript
     use ModelFactoryTrait;
     use CollectionLoaderAwareTrait;
     use SitemapBuilderAwareTrait;
+    use CrawlerAwareTrait;
+    use IndexerAwareTrait;
 
     /**
      * @var Builder
      */
     protected $sitemap;
-
-    /**
-     * @var CrawlerService
-     */
-    protected $crawler;
 
     /**
      * @var string
@@ -40,6 +38,7 @@ class IndexContentScript extends CharcoalScript
      */
     protected $indexElementId;
 
+
     /**
      * @param Container $container The DI container.
      * @return void
@@ -50,6 +49,7 @@ class IndexContentScript extends CharcoalScript
         $this->setCollectionLoader($container['model/collection/loader']);
         $this->setSitemapBuilder($container['charcoal/sitemap/builder']);
         $this->setCrawler($container['search/crawler']);
+        $this->setIndexer($container['search/indexer']);
 
         parent::setDependencies($container);
     }
@@ -108,29 +108,19 @@ class IndexContentScript extends CharcoalScript
     public function run(RequestInterface $request, ResponseInterface $response)
     {
         unset($request);
-
         $proto = $this->modelFactory()->create(IndexContent::class);
 
-        if (!$proto->source()->tableExists()) {
-            $this->createTable($proto);
-        }
-
-        $proto->source()->dbQuery(strtr(
-            'DELETE FROM `%table`',
-            [
-                '%table' => $proto->source()->table()
-            ]
-        ));
+        $this->getIndexer()->checkIndexContentTableExistance(); // Make sure the table exists with the proper values
 
         $baseUrl    = $this->climate()->arguments->get('base_url');
         $sitemapKey = $this->climate()->arguments->get('config');
 
-        $this->setIndexElementId($this->climate()->arguments->get('index_element_id'));
-        $this->setNoIndexClass($this->climate()->arguments->get('no_index_class'));
+        $this->getIndexer()->setIndexElementId($this->climate()->arguments->get('index_element_id'));
+        $this->getIndexer()->setNoIndexClass($this->climate()->arguments->get('no_index_class'));
 
-        $this->crawler()->setBaseUrl($baseUrl);
+        $this->getCrawler()->setBaseUrl($baseUrl);
 
-        $sitemap = $this->crawler()->crawl(
+        $sitemap = $this->getCrawler()->crawl(
             $sitemapKey,
             [$this, 'indexContent'],
             [$this, 'errorIndexing']
@@ -148,12 +138,11 @@ class IndexContentScript extends CharcoalScript
             strtr(
                 'Error crawling object <white>%type</white> - <white>%id</white> with URL <white>%url</white>',
                 [
+                    '%id'   => $object['objId'],
+                    '%type' => $object['objType'],
                     '%url'  => $object['url'],
-                    '%id'   => $object['data']['id'],
-                    '%type' => $object['data']['objType']
                 ]
-            )
-        );
+            ));
     }
 
     /**
@@ -168,199 +157,26 @@ class IndexContentScript extends CharcoalScript
             $url = '/';
         }
 
-        $this->climate()->green()->out(strtr(
-            'Indexing page <white>%url</white> from object <white>%objectType</white> - <white>%objectId</white>',
-            [
-                '%url'        => $object['url'],
-                '%objectType' => $object['data']['objType'],
-                '%objectId'   => $object['data']['id']
-            ]
-        ));
+        $data = [
+            'url'     => $url,
+            'lang'    => $object['lang'],
+            'objId'   => $object['data']['id'],
+            'objType' => $object['data']['objType']
+        ];
 
-        $body = $res->getBody();
-
-        // Get metas
-        $doc = new \DOMDocument();
-        // Prevents DOMDocument to assume HTML4
-        libxml_use_internal_errors(true);
-        $doc->loadHTML($body);
-        libxml_use_internal_errors(false);
-        $xpath     = new \DOMXPath($doc);
-        $nodes     = $xpath->query('//head/meta');
-        $titleNode = $doc->getElementsByTagName('title')[0];
-
-        $title = '';
-        if ($titleNode) {
-            $title = $titleNode->textContent;
-        }
-
-        $description = '';
-        foreach ($nodes as $node) {
-            if ($node->getAttribute('name') === 'description') {
-                $description = $node->getAttribute('content');
-                break;
-            }
-        }
-
-        // Do not search in script tags.
-        foreach ($xpath->query('//script') as $e) {
-            $e->parentNode->removeChild($e);
-        }
-
-        foreach ($xpath->query(sprintf('//*[contains(attribute::class, "%s")]', $this->noIndexClass())) as $e) {
-            $e->parentNode->removeChild($e);
-        }
-        $doc->saveHTML($doc->documentElement);
-
-        // Default behavior is to take the entire body
-        if ($this->indexElementId()) {
-            $main = $doc->getElementById($this->indexElementId());
-        } else {
-            $main = $doc->getElementsByTagName('body')[0];
-        }
-
-        if (!$main) {
-            $this->climate()->red(
-                'Error indexing page <white>%url</white> from object <white>%objectType</white> - '
-                + '<white>%objectId</white>. %details',
+        try {
+            $this->getIndexer()->indexContent($res, $data);
+            $this->climate()->green()->out(strtr(
+                'Indexing page <white>%url</white> from object <white>%objectType</white> - <white>%objectId</white>',
                 [
-                    '%url'        => $object['url'],
-                    '%objectType' => $object['data']['objType'],
-                    '%objectId'   => $object['data']['id'],
-                    '%details'    => $this->indexElementId() ? sprintf(
-                        'Unexisting document element for ID %s.',
-                        $this->indexElementId()
-                    ) : 'Body tag not found.'
+                    '%url'        => $data['url'],
+                    '%objectType' => $data['objType'],
+                    '%objectId'   => $data['objId']
                 ]
-            );
-            return;
-        }
-
-        $index   = $this->modelFactory()->create(IndexContent::class);
-        $content = preg_replace('/\s+/', ' ', $main->textContent);
-
-        // Save indexed content to DB
-        $index->load($url);
-        $index->setLang($object['lang']);
-        $index->setObjectType($object['data']['objType']);
-        $index->setObjectId($object['data']['id']);
-        $index->setContent($content);
-        $index->setTitle($title);
-        $index->setDescription($description);
-
-        if (!$index->id()) {
-            $index->setSlug($url);
-            $index->save();
+            ));
+        } catch (\Exception $e) {
+            $this->errorIndexing($data);
         }
     }
 
-    /**
-     * Clean content from unnecessary content
-     *
-     * @param $content
-     * @return null|string|string[]
-     */
-    private function cleanHtml($content)
-    {
-        $html = preg_replace('#<script(.*?)>(.*?)</script>#is', '', $content);
-        $html = preg_replace('#<style[^>]*?>.*?</style>#is', '', $html);
-        $html = strip_tags($html);
-        $html = preg_replace('!\s+!', ' ', $html);
-
-        return $html;
-    }
-
-    /**
-     * Creates table and adds index
-     *
-     * @param $proto
-     */
-    protected function createTable($proto)
-    {
-        $proto->source()->createTable();
-
-        // Add fulltext index on all separate column in order to allow a weighted search
-        // Normal search should only occur on `content` as it is the entire indexable textual
-        // content of the page and should therefore have the title in it.
-        $q = $proto->source()->dbQuery(
-            strtr(
-                'ALTER TABLE `%table` ADD FULLTEXT(`content`)',
-                [
-                    '%table' => $proto->source()->table()
-                ]
-            )
-        );
-
-        $proto->source()->dbQuery(
-            strtr(
-                'ALTER TABLE `%table` ADD FULLTEXT (`title`)',
-                [
-                    '%table' => $proto->source()->table()
-                ]
-            )
-        );
-
-        $proto->source()->dbQuery(
-            strtr(
-                'ALTER TABLE `%table` ADD FULLTEXT (`description`)',
-                [
-                    '%table' => $proto->source()->table()
-                ]
-            )
-        );
-    }
-
-    /**
-     * @return CrawlerService
-     */
-    public function crawler()
-    {
-        return $this->crawler;
-    }
-
-    /**
-     * @param CrawlerService $crawler
-     * @return IndexContentScript
-     */
-    public function setCrawler($crawler)
-    {
-        $this->crawler = $crawler;
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    public function noIndexClass()
-    {
-        return $this->noIndexClass;
-    }
-
-    /**
-     * @param string $noIndexClass
-     * @return IndexContentScript
-     */
-    public function setNoIndexClass($noIndexClass)
-    {
-        $this->noIndexClass = $noIndexClass;
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    public function indexElementId()
-    {
-        return $this->indexElementId;
-    }
-
-    /**
-     * @param string $indexElementId
-     * @return IndexContentScript
-     */
-    public function setIndexElementId($indexElementId)
-    {
-        $this->indexElementId = $indexElementId;
-        return $this;
-    }
 }
