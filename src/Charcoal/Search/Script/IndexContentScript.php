@@ -111,6 +111,7 @@ class IndexContentScript extends CharcoalScript
         $proto = $this->modelFactory()->create(IndexContent::class);
 
         $this->getIndexer()->checkIndexContentTableExistance(); // Make sure the table exists with the proper values
+        $this->getIndexer()->deleteAllIndexes();
 
         $baseUrl    = $this->climate()->arguments->get('base_url');
         $sitemapKey = $this->climate()->arguments->get('config');

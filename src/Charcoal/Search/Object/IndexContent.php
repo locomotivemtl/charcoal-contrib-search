@@ -151,7 +151,7 @@ class IndexContent extends Content
      * @param string $title
      * @return IndexContent
      */
-    public function setTitle(string $title)
+    public function setTitle(?string $title)
     {
         $this->title = $title;
         return $this;

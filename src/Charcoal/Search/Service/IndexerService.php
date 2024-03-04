@@ -310,4 +310,23 @@ class IndexerService
             }
         }
     }
+
+    /**
+     * Deletes all indexes from the database.
+     *
+     * @return void
+     */
+    public function deleteAllIndexes()
+    {
+        $model = $this->modelFactory()->create(IndexContent::class);
+        if (!$model->source()->tableExists()) {
+            return ;
+        }
+
+        $q = strtr('DELETE FROM `%table`', [
+            '%table' => $model->source()->table()
+        ]);
+
+        $model->source()->dbQuery($q);
+    }
 }
