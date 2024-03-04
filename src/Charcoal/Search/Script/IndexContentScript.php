@@ -82,7 +82,7 @@ class IndexContentScript extends CharcoalScript
                 'longPrefix'   => 'no_index_class',
                 'description'  => 'Class that help excluding content from the search index. ' .
                     'Used mostly on navigations, header and footer.',
-                'defaultValue' => 'php_no-index'
+                'defaultValue' => 'php-no_index'
             ],
 
             'index_element_id' => [
@@ -167,11 +167,11 @@ class IndexContentScript extends CharcoalScript
         try {
             $this->getIndexer()->indexContent($res, $data);
             $this->climate()->green()->out(strtr(
-                'Indexing page <white>%url</white> from object <white>%objectType</white> - <white>%objectId</white>',
+                'Indexing page <white>%url</white> from object <white>%objectType</white> - <white>%objId</white>',
                 [
                     '%url'        => $data['url'],
                     '%objectType' => $data['objType'],
-                    '%objectId'   => $data['objId']
+                    '%objId'   => $data['objId']
                 ]
             ));
         } catch (\Exception $e) {

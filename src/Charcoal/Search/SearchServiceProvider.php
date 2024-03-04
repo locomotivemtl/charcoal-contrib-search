@@ -52,6 +52,7 @@ class SearchServiceProvider implements ServiceProviderInterface
          */
         $container['search/indexer'] = function ($container) {
             return new IndexerService([
+                'base-url'                => $container['base-url'],
                 'translator'              => $container['translator'],
                 'search/crawler'          => $container['search/crawler'],
                 'model/factory'           => $container['model/factory'],

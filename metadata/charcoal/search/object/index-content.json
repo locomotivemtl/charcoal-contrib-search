@@ -10,6 +10,10 @@
         "menu_items": "Contenus indexés"
     },
     "properties": {
+        "id": {
+            "type": "id",
+            "mode": "uuid"
+        },
         "object_type": {
             "type": "string",
             "label": {
@@ -17,7 +21,7 @@
                 "en": "Object Type"
             }
         },
-        "object_id": {
+        "objectId": {
             "type": "string",
             "label": {
                 "fr": "ID de l'objet",
@@ -47,8 +51,7 @@
             }
         },
         "slug": {
-            "mode": "custom",
-            "type": "id",
+            "type": "string",
             "label": {
                 "fr": "URL / Permalien",
                 "en": "Slug"
@@ -63,7 +66,7 @@
         }
     },
     "default_data": {
-        "key": "slug"
+        "key": "id"
     },
     "sources": {
         "default": {
@@ -76,7 +79,7 @@
             "default": {
                 "properties": [
                     "object_type",
-                    "object_id",
+                    "objectId",
                     "slug",
                     "title",
                     "description",
@@ -92,7 +95,7 @@
                         "mode": "asc"
                     },
                     {
-                        "property": "object_id",
+                        "property": "objectId",
                         "mode": "asc"
                     }
                 ]
@@ -114,7 +117,7 @@
                             ]
                         },
                         "properties": [
-                            "object_id",
+                            "objectId",
                             "object_type",
                             "slug",
                             "lang",

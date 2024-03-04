@@ -71,7 +71,7 @@ Before running the script, you need to setup
 ### Parameters
 - `-u` (--url) Website URL. Necessary as this is run in a cron script.
 - `-c` (--config) Sitemap builder key (Defaults to `xml`)
-- `-n` (--no_index_class) Class to filter out content from the crawled pages. Defaults to "php_no-index"
+- `-n` (--no_index_class) Class to filter out content from the crawled pages. Defaults to "php-no_index"
 - `-i` (--index_element_id) ID of the element to be indexed in the crawled page. Defaults to entire page body.
 
 ## Development

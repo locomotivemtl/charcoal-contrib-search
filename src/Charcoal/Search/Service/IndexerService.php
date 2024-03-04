@@ -24,7 +24,7 @@ class IndexerService
      */
     protected $baseUrl;
 
-    protected $noIndexClass;
+    protected $noIndexClass = 'php-no_index';
     protected $indexElementId;
 
     /**
@@ -38,6 +38,9 @@ class IndexerService
         $this->setTranslator($data['translator']);
         $this->setModelFactory($data['model/factory']);
         $this->setCollectionLoader($data['model/collection/loader']);
+        if (isset($data['base-url']) || !empty($data['base-url'])) {
+            $this->setBaseUrl($data['base-url']);
+        }
     }
 
     /**
@@ -105,7 +108,8 @@ class IndexerService
     public function indexContentFromModel(RoutableInterface $model)
     {
         foreach ($this->translator()->availableLocales() as $locale) {
-            $res = $this->getCrawler()->get($model->url($locale));
+            $url = rtrim($this->baseUrl(), '/') . '/' . ltrim($model->url($locale), '/');
+            $res = $this->getCrawler()->get($url);
             if (!$res) {
                 continue;
             }
@@ -159,8 +163,10 @@ class IndexerService
             $e->parentNode->removeChild($e);
         }
 
-        foreach ($xpath->query(sprintf('//*[contains(attribute::class, "%s")]', $this->noIndexClass())) as $e) {
-            $e->parentNode->removeChild($e);
+        if (!empty($this->noIndexClass())) {
+            foreach ($xpath->query(sprintf('//*[contains(attribute::class, "%s")]', $this->noIndexClass())) as $e) {
+                $e->parentNode->removeChild($e);
+            }
         }
         $doc->saveHTML($doc->documentElement);
 
@@ -175,7 +181,6 @@ class IndexerService
             // Error
             // If indexElementId() -> the element ID doesnt exist on the page
             // Else, no body tag found
-
             return;
         }
 
@@ -298,8 +303,7 @@ class IndexerService
     public function cleanupOutdatedContentIndexes()
     {
         $values = $this->collectionLoader()->setModel(IndexContent::class)->load()->values();
-        foreach ($values as $content)
-        {
+        foreach ($values as $content) {
             $model = $this->modelFactory()->create($content['objectType'])->load($content['objectId']);
             if (!$model->id() || !($model instanceof RoutableInterface) || !$model->isActiveRoute()) {
                 $content->delete();
