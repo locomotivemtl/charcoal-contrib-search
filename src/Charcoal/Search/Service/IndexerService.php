@@ -135,36 +135,42 @@ class IndexerService
 
         $body = (string)$res->getBody();
 
-        // Getting meta tags
-        $doc = new \DOMDocument();
+        $docImp  = new \DOMImplementation();
+        $docType = $docImp->createDocumentType('html');
+
+        $doc = $docImp->createDocument(null, '', $docType);
+        $doc->encoding = 'UTF-8';
+
         libxml_use_internal_errors(true); // Prevents DOMDocument to assume HTML4
         $doc->loadHTML($body);
         libxml_use_internal_errors(false);
-        $xpath     = new \DOMXPath($doc);
-        $nodes     = $xpath->query('//head/meta');
-        $titleNode = $doc->getElementsByTagName('title')[0];
 
-        $title = '';
+        $xpath = new \DOMXPath($doc);
+
+        // Getting meta tags
+        $titleNode = $doc->getElementsByTagName('title')[0];
+        $title     = '';
         if ($titleNode) {
-            $title = $titleNode->textContent;
+            $title = trim($titleNode->textContent);
         }
 
+        $metaNodes   = $xpath->query('//head/meta');
         $description = '';
-        foreach ($nodes as $node) {
-            if ($node->getAttribute('name') === 'description') {
-                $description = $node->getAttribute('content');
+        foreach ($metaNodes as $metaNode) {
+            if ($metaNode->getAttribute('name') === 'description') {
+                $description = trim($metaNode->getAttribute('content'));
                 break;
             }
         }
 
         // Do not search in script tags.
-        foreach ($xpath->query('//script') as $e) {
-            $e->parentNode->removeChild($e);
+        foreach ($xpath->query('//script') as $node) {
+            $node->parentNode->removeChild($node);
         }
 
         if (!empty($this->noIndexClass())) {
-            foreach ($xpath->query(sprintf('//*[contains(attribute::class, "%s")]', $this->noIndexClass())) as $e) {
-                $e->parentNode->removeChild($e);
+            foreach ($xpath->query(sprintf('//*[contains(attribute::class, "%s")]', $this->noIndexClass())) as $node) {
+                $node->parentNode->removeChild($node);
             }
         }
         $doc->saveHTML($doc->documentElement);
@@ -186,7 +192,7 @@ class IndexerService
         $model = $this->modelFactory()->create($object['objType'])->load($object['objId']);
         $index = $this->getIndexedContentFromModel($model);
 
-        $content = preg_replace('/\s+/', ' ', $main->textContent);
+        $content = preg_replace('/\s+/u', ' ', trim($main->textContent));
 
         // Save indexed content to DB
         $index->setLang($object['lang']);
