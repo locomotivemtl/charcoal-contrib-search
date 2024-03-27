@@ -23,7 +23,7 @@
     "require": {
         "php": ">=7.0",
         "locomotivemtl/charcoal-contrib-sitemap": ">=0.2",
-        "guzzlehttp/guzzle": ">=7.8.0"
+        "guzzlehttp/guzzle": "^6.0 || ^7.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^7.1",

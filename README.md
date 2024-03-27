@@ -38,7 +38,7 @@ $ composer require locomotivemtl/charcoal-contrib-search
 #### Required
 
 -   [**PHP 5.6+**](https://php.net): _PHP 7_ is recommended.
--   [**guzzlehttp/guzzle**](https://github.com/guzzle/guzzle): ~0.6
+-   [**guzzlehttp/guzzle**](https://github.com/guzzle/guzzle): 6 or 7
 -   [**charcoal-admin**](https://github.com/locomotivemtl/charcoal-admin): >=0.14
 -   [**charcoal-contrib-sitemap**](https://github.com/locomotivemtl/charcoal-contrib-sitemap): >=0.1.5
 
