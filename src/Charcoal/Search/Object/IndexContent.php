@@ -6,7 +6,6 @@ use Charcoal\Object\Content;
 
 class IndexContent extends Content
 {
-
     /**
      * @var string
      */
@@ -101,7 +100,6 @@ class IndexContent extends Content
         $this->objectId = $objectId;
         return $this;
     }
-
 
     /**
      * @return string

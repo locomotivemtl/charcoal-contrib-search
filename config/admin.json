@@ -2,10 +2,10 @@
     "admin": {
         "routes": {
             "scripts": {
-                "search/index-content":{
+                "search/index-content": {
                     "ident": "charcoal/search/script/index-content"
                 },
-                "search/clean-indexed-content":{
+                "search/clean-indexed-content": {
                     "ident": "charcoal/search/script/clean-indexed-content"
                 }
             }

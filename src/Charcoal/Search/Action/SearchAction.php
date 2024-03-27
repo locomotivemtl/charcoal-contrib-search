@@ -56,8 +56,8 @@ class SearchAction extends AbstractAction
         foreach ($list as $l) {
             $out[] = [
               'objType' => $l->objectType(),
-              'objId' => $l->objectId(),
-              'slug' => $l->slug()
+              'objId'   => $l->objectId(),
+              'slug'    => $l->slug(),
             ];
         }
 

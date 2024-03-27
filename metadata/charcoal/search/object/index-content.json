@@ -1,13 +1,37 @@
 {
     "labels": {
-        "name": "Contenus indexés",
-        "singular_name": "Contenu indexé",
-        "create_item": "Indexer un contenu",
-        "new_item": "Nouveau contenu",
-        "view_item": "Voir le contenu",
-        "edit_item": "Modifier le contenu",
-        "all_items": "Tous les contenus",
-        "menu_items": "Contenus indexés"
+        "name": {
+            "en": "Indexed Content",
+            "fr": "Contenus indexés"
+        },
+        "singular_name": {
+            "en": "Indexed Content",
+            "fr": "Contenu indexé"
+        },
+        "create_item": {
+            "en": "Index Content",
+            "fr": "Indexer un contenu"
+        },
+        "new_item": {
+            "en": "New Content",
+            "fr": "Nouveau contenu"
+        },
+        "view_item": {
+            "en": "View Content",
+            "fr": "Voir le contenu"
+        },
+        "edit_item": {
+            "en": "Edit Content",
+            "fr": "Modifier le contenu"
+        },
+        "all_items": {
+            "en": "All Indexed Content",
+            "fr": "Tous le contenu indexé"
+        },
+        "menu_items": {
+            "en": "Indexed Content",
+            "fr": "Contenus indexés"
+        }
     },
     "properties": {
         "id": {
@@ -109,11 +133,8 @@
                         "title": "Contenu",
                         "layout": {
                             "structure": [
-                                {
-                                    "columns": [1, 1, 1, 1]
-                                }, {
-                                    "columns": [1]
-                                }
+                                { "columns": [ 1, 1, 1, 1 ] },
+                                { "columns": [ 1 ] }
                             ]
                         },
                         "properties": [

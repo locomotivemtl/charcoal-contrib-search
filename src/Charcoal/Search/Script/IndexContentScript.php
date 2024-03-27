@@ -67,14 +67,14 @@ class IndexContentScript extends CharcoalScript
                 'prefix'       => 'c',
                 'longPrefix'   => 'config',
                 'description'  => 'The sitemap builder key.',
-                'defaultValue' => 'xml'
+                'defaultValue' => 'xml',
             ],
 
             'base_url' => [
                 'prefix'      => 'u',
                 'longPrefix'  => 'url',
                 'description' => 'Base URL',
-                'required'    => true
+                'required'    => true,
             ],
 
             'no_index_class' => [
@@ -82,14 +82,14 @@ class IndexContentScript extends CharcoalScript
                 'longPrefix'   => 'no_index_class',
                 'description'  => 'Class that help excluding content from the search index. ' .
                     'Used mostly on navigations, header and footer.',
-                'defaultValue' => 'php-no_index'
+                'defaultValue' => 'php-no_index',
             ],
 
             'index_element_id' => [
                 'prefix'      => 'i',
                 'longPrefix'  => 'index_element_id',
-                'description' => 'Id of the main element to be indexed. (Defaults to entire body)'
-            ]
+                'description' => 'Id of the main element to be indexed. (Defaults to entire body)',
+            ],
         ];
 
         $arguments = array_merge(parent::defaultArguments(), $arguments);
@@ -107,9 +107,6 @@ class IndexContentScript extends CharcoalScript
      */
     public function run(RequestInterface $request, ResponseInterface $response)
     {
-        unset($request);
-        $proto = $this->modelFactory()->create(IndexContent::class);
-
         $this->getIndexer()->checkIndexContentTableExistance(); // Make sure the table exists with the proper values
         $this->getIndexer()->deleteAllIndexes();
 
@@ -121,7 +118,7 @@ class IndexContentScript extends CharcoalScript
 
         $this->getCrawler()->setBaseUrl($baseUrl);
 
-        $sitemap = $this->getCrawler()->crawl(
+        $this->getCrawler()->crawl(
             $sitemapKey,
             [$this, 'indexContent'],
             [$this, 'errorIndexing']

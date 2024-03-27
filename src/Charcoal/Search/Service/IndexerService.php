@@ -117,7 +117,7 @@ class IndexerService
                 'url'     => $model->url($locale),
                 'lang'    => $locale,
                 'objType' => $model::objType(),
-                'objId'   => $model->id()
+                'objId'   => $model->id(),
             ]);
         }
     }
@@ -129,7 +129,6 @@ class IndexerService
     public function indexContent(ResponseInterface $res, $object)
     {
         $url = ltrim($object['url'], '/');
-
         if (!$url) {
             $url = '/';
         }
@@ -230,7 +229,7 @@ class IndexerService
             strtr(
                 'ALTER TABLE `%table` ADD FULLTEXT(`content`)',
                 [
-                    '%table' => $model->source()->table()
+                    '%table' => $model->source()->table(),
                 ]
             )
         );
@@ -239,7 +238,7 @@ class IndexerService
             strtr(
                 'ALTER TABLE `%table` ADD FULLTEXT (`title`)',
                 [
-                    '%table' => $model->source()->table()
+                    '%table' => $model->source()->table(),
                 ]
             )
         );
@@ -248,7 +247,7 @@ class IndexerService
             strtr(
                 'ALTER TABLE `%table` ADD FULLTEXT (`description`)',
                 [
-                    '%table' => $model->source()->table()
+                    '%table' => $model->source()->table(),
                 ]
             )
         );
@@ -282,7 +281,7 @@ class IndexerService
         $q = strtr($q, [
             '%table' => $index->source()->table(),
             '%type'  => $model->objType(),
-            '%id'    => $model->id()
+            '%id'    => $model->id(),
         ]);
 
         $index->loadFromQuery($q);
@@ -324,7 +323,7 @@ class IndexerService
         }
 
         $q = strtr('DELETE FROM `%table`', [
-            '%table' => $model->source()->table()
+            '%table' => $model->source()->table(),
         ]);
 
         $model->source()->dbQuery($q);
