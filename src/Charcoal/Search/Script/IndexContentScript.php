@@ -128,53 +128,65 @@ class IndexContentScript extends CharcoalScript
     }
 
     /**
-     * @param $object
+     * @param array<string, mixed> $object
+     * @param ?string              $message
      */
-    public function errorIndexing($object)
+    public function errorIndexing($object, $message = null)
     {
-        $this->climate()->red()->out(
-            strtr(
-                'Error crawling object <white>%type</white> - <white>%id</white> with URL <white>%url</white>',
-                [
-                    '%id'   => $object['objId'],
-                    '%type' => $object['objType'],
-                    '%url'  => $object['url'],
-                ]
-            ));
+        $out = strtr(
+            'Could not index [<white>%objType</white>:<white>%objId</white>] with URL: <white>%url</white>',
+            [
+                '%objId'   => ($object['data']['id'] ?? null),
+                '%objType' => ($object['data']['objType'] ?? null),
+                '%url'     => ($object['url'] ?? null),
+            ]
+        );
+
+        if ($message) {
+            $out .= ' -- '.$message;
+        }
+
+        $this->climate()->red()->out($out);
     }
 
     /**
-     * @param $res
-     * @param $object
+     * @param \Psr\Http\Message\ResponseInterface $res
+     * @param array<string, mixed>                $object
      */
     public function indexContent($res, $object)
     {
-        $url = ltrim($object['url'], '/');
+        if (
+            !isset($object['url'], $object['data']) ||
+            !isset($object['data']['id'], $object['data']['objType'])
+        ) {
+            $this->errorIndexing($object, 'Invalid object format');
+            return;
+        }
 
+        $url = ltrim($object['url'], '/');
         if (!$url) {
             $url = '/';
         }
 
         $data = [
             'url'     => $url,
-            'lang'    => $object['lang'],
+            'lang'    => ($object['lang'] ?? null),
             'objId'   => $object['data']['id'],
-            'objType' => $object['data']['objType']
+            'objType' => $object['data']['objType'],
         ];
 
         try {
             $this->getIndexer()->indexContent($res, $data);
             $this->climate()->green()->out(strtr(
-                'Indexing page <white>%url</white> from object <white>%objectType</white> - <white>%objId</white>',
+                'Indexing [<white>%objType</white>:<white>%objId</white>] with URL <white>%url</white>',
                 [
-                    '%url'        => $data['url'],
-                    '%objectType' => $data['objType'],
-                    '%objId'   => $data['objId']
+                    '%objId'   => $data['objId'],
+                    '%objType' => $data['objType'],
+                    '%url'     => $data['url'],
                 ]
             ));
         } catch (\Exception $e) {
-            $this->errorIndexing($data);
+            $this->errorIndexing($object, $e->getMessage());
         }
     }
-
 }

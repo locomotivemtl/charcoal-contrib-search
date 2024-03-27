@@ -123,8 +123,8 @@ class IndexerService
     }
 
     /**
-     * @param $res
-     * @param $object ['url' => 'https://...', 'lang' => 'fr', 'objType' => '', 'objId' => '']
+     * @param ?\Psr\Http\Message\ResponseInterface                             $res
+     * @param array{url:string, lang:string, objId:int|string, objType:string} $object
      */
     public function indexContent(ResponseInterface $res, $object)
     {
@@ -133,7 +133,7 @@ class IndexerService
             $url = '/';
         }
 
-        $body = $res->getBody();
+        $body = (string)$res->getBody();
 
         // Getting meta tags
         $doc = new \DOMDocument();

@@ -75,9 +75,8 @@ class CrawlerService
     }
 
     /**
-     * @param $url
-     * @return bool|mixed|\Psr\Http\Message\ResponseInterface
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @param  string $url
+     * @return ?\Psr\Http\Message\ResponseInterface
      */
     public function get($url)
     {
@@ -91,11 +90,11 @@ class CrawlerService
         try {
             $res = $client->request('GET', $url);
         } catch (\Exception $e) {
-            return false;
+            return null;
         }
 
         if ($res->getStatusCode() !== 200) {
-            return false;
+            return null;
         }
 
         return $res;
