@@ -68,11 +68,43 @@ Before running the script, you need to setup
 0 0 * * * cd /[project]/web && /usr/local/bin/php /[project]/web/vendor/bin/charcoal admin/search/index-content -u http://project-url.com/
 ```
 
+Each object of the sitemap to index must include `data.id` and `data.objType` to be indexable:
+
+```json
+{
+    "sitemap": {
+        "xml": {
+            "l10n": true,
+            "check_active_routes": true,
+            "relative_urls": false,
+            "objects": {…}
+        },
+        "searchables": {
+            "l10n": true,
+            "check_active_routes": true,
+            "relative_urls": false,
+            "transformer": "charcoal/search/transformer/indexable",
+            "objects": {
+                "app/object/section": {
+                    "filters": {…},
+                    "data": {
+                        "id": "{{id}}",
+                        "objType": "{{objType}}"
+                    }
+                },
+                …
+            }
+        }
+    }
+}
+```
+
 ### Parameters
-- `-u` (--url) Website URL. Necessary as this is run in a cron script.
-- `-c` (--config) Sitemap builder key (Defaults to `xml`)
-- `-n` (--no_index_class) Class to filter out content from the crawled pages. Defaults to "php-no_index"
-- `-i` (--index_element_id) ID of the element to be indexed in the crawled page. Defaults to entire page body.
+
+- `-u` (`--url`) Website URL. Necessary as this is run in a cron script.
+- `-c` (`--config`) Sitemap builder key (Defaults to `xml`).
+- `-n` (`--no_index_class`) Class to filter out content from the crawled pages. Defaults to `php-no_index`.
+- `-i` (`--index_element_id`) ID of the element to be indexed in the crawled page. Defaults to entire page body.
 
 ## Development
 
