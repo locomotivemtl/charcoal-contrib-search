@@ -61,13 +61,14 @@ class CrawlerService
             foreach ($map as $object) {
                 $url = ltrim($object['url'], '/');
                 $res = $this->get($url);
-                if ($res) {
+
+                if ($res->getStatusCode() === 200) {
                     if (is_callable($success)) {
                         call_user_func($success, $res, $object);
                     }
                 } else {
                     if (is_callable($failure)) {
-                        call_user_func($failure, $object);
+                        call_user_func($failure, $res, $object);
                     }
                 }
             }
@@ -90,10 +91,6 @@ class CrawlerService
         try {
             $res = $client->request('GET', $url);
         } catch (\Exception $e) {
-            return null;
-        }
-
-        if ($res->getStatusCode() !== 200) {
             return null;
         }
 

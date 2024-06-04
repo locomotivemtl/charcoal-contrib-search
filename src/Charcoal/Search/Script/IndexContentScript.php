@@ -128,23 +128,21 @@ class IndexContentScript extends CharcoalScript
     }
 
     /**
-     * @param array<string, mixed> $object
-     * @param ?string              $message
+     * @param $res
+     * @param $object
+     * @return void
      */
-    public function errorIndexing($object, $message = null)
+    public function errorIndexing($res, $object)
     {
         $out = strtr(
-            'Could not index [<white>%objType</white>:<white>%objId</white>] with URL: <white>%url</white>',
+            'Could not index [<white>%objType</white>:<white>%objId</white>] with URL: <white>%url</white> with status: <white>%status</white>',
             [
                 '%objId'   => ($object['data']['id'] ?? null),
                 '%objType' => ($object['data']['objType'] ?? null),
                 '%url'     => ($object['url'] ?? null),
+                '%status'  => $res->getStatusCode()
             ]
         );
-
-        if ($message) {
-            $out .= ' -- '.$message;
-        }
 
         $this->climate()->red()->out($out);
     }
