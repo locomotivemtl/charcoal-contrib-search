@@ -122,10 +122,62 @@
                         "property": "object_id",
                         "mode": "asc"
                     }
-                ]
+                ],
+                "pagination": {
+                    "num_per_page": 100
+                },
+                "list_actions": {
+                    "create": {
+                        "url": "object/edit?obj_type={{objType}}"
+                    },
+                    "bytype": {
+                        "url": "object/collection?obj_type={{objType}}",
+                        "actionType": "dark",
+                        "label": "Par type de contenu"
+                    },
+                    "bytime": {
+                        "url": "object/collection?obj_type={{objType}}&collection_ident=latest",
+                        "actionType": "light",
+                        "label": "Par date de modification"
+                    }
+                }
+            },
+            "latest": {
+                "properties": [
+                    "object_type",
+                    "object_id",
+                    "slug",
+                    "title",
+                    "description",
+                    "lang"
+                ],
+                "orders": [
+                    {
+                        "property": "last_modified",
+                        "mode": "desc"
+                    }
+                ],
+                "pagination": {
+                    "num_per_page": 100
+                },
+                "list_actions": {
+                    "create": {
+                        "url": "object/edit?obj_type={{objType}}"
+                    },
+                    "bytype": {
+                        "url": "object/collection?obj_type={{objType}}",
+                        "actionType": "light",
+                        "label": "Par type de contenu"
+                    },
+                    "bytime": {
+                        "url": "object/collection?obj_type={{objType}}&collection_ident=latest",
+                        "actionType": "dark",
+                        "label": "Par date de modification"
+                    }
+                }
             }
         },
-        "default_list": "default",
+        "default_list": "latest",
         "forms": {
             "default": {
                 "groups": {
@@ -169,6 +221,7 @@
                         "type": "charcoal/admin/widget/table",
                         "collection_ident": "default",
                         "obj_type": "charcoal/search/object/index-content",
+                        "data_sources": ["request"],
                         "priority": 20
                     }
                 }
