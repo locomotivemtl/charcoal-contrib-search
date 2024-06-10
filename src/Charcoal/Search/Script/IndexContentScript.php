@@ -148,6 +148,27 @@ class IndexContentScript extends CharcoalScript
     }
 
     /**
+     * @param $res
+     * @param $object
+     * @return void
+     */
+    public function failedIndexing($object, $errorMsg)
+    {
+        $out = strtr(
+            'Could not index [<white>%objType</white>:<white>%objId</white>] with URL: <white>%url</white> with status: <white>%status</white>',
+            [
+                '%objId'   => ($object['data']['id'] ?? null),
+                '%objType' => ($object['data']['objType'] ?? null),
+                '%url'     => ($object['url'] ?? null),
+                '%status'  => 'No status'
+            ]
+        );
+
+        $this->climate()->red()->out($out);
+        $this->climate()->red()->out($errorMsg);
+    }
+
+    /**
      * @param \Psr\Http\Message\ResponseInterface $res
      * @param array<string, mixed>                $object
      */
@@ -184,7 +205,7 @@ class IndexContentScript extends CharcoalScript
                 ]
             ));
         } catch (\Exception $e) {
-            $this->errorIndexing($object, $e->getMessage());
+            $this->failedIndexing($object, $e->getMessage());
         }
     }
 }
