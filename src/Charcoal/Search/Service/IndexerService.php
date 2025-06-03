@@ -190,7 +190,7 @@ class IndexerService
         }
 
         $model = $this->modelFactory()->create($object['objType'])->load($object['objId']);
-        $index = $this->getIndexedContentFromModel($model);
+        $index = $this->getIndexedContentFromModelAndLocale($model, $object['lang']);
 
         $content = preg_replace('/\s+/u', ' ', trim($main->textContent));
 
@@ -265,10 +265,16 @@ class IndexerService
      */
     public function removeIndexedContentFromModel(RoutableInterface $model)
     {
-        $model = $this->getIndexedContentFromModel($model);
-        if ($model->id()) {
-            $model->delete();
-        }
+        $q = 'DELETE FROM `%table` WHERE object_type = \'%type\' AND object_id = \'%id\'';
+        $index = $this->modelFactory()->create(IndexContent::class);
+
+        $model->source()->dbQuery(
+            strtr($q, [
+                '%table' => $index->source()->table(),
+                '%type'  => $model->objType(),
+                '%id'    => $model->id(),
+            ])
+        );
     }
 
     /**
@@ -278,16 +284,17 @@ class IndexerService
      * @param mixed $model The model object from which to retrieve the indexed content.
      * @return IndexContent The indexed content object.
      */
-    public function getIndexedContentFromModel($model)
+    public function getIndexedContentFromModelAndLocale($model, $lang)
     {
         $index = $this->modelFactory()->create(IndexContent::class);
 
         // Check if content already exists in the table
-        $q = 'SELECT * FROM `%table` WHERE object_type = \'%type\' AND object_id = \'%id\'';
+        $q = 'SELECT * FROM `%table` WHERE object_type = \'%type\' AND object_id = \'%id\' AND lang = \'%lang\'';
         $q = strtr($q, [
             '%table' => $index->source()->table(),
             '%type'  => $model->objType(),
             '%id'    => $model->id(),
+            '%lang'  => $lang,
         ]);
 
         $index->loadFromQuery($q);
