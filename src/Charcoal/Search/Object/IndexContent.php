@@ -46,6 +46,13 @@ class IndexContent extends Content
     protected $description;
 
     /**
+     * Meta keywords
+     *
+     * @var string
+     */
+    protected $keywords;
+
+    /**
      * Web page lang
      *
      * @var string
@@ -170,6 +177,21 @@ class IndexContent extends Content
     public function setDescription($description)
     {
         $this->description = $description;
+        return $this;
+    }
+
+    public function keywords()
+    {
+        return $this->keywords;
+    }
+
+    /**
+     * @param string $keywords
+     * @return IndexContent
+     */
+    public function setKeywords($keywords)
+    {
+        $this->keywords = $keywords;
         return $this;
     }
 

@@ -156,10 +156,16 @@ class IndexerService
 
         $metaNodes   = $xpath->query('//head/meta');
         $description = '';
+        $keywords = '';
         foreach ($metaNodes as $metaNode) {
             if ($metaNode->getAttribute('name') === 'description') {
                 $description = trim($metaNode->getAttribute('content'));
-                break;
+                continue;
+            }
+
+            if ($metaNode->getAttribute('name') === 'keywords') {
+                $keywords = trim($metaNode->getAttribute('content'));
+                continue;
             }
         }
 
@@ -201,6 +207,7 @@ class IndexerService
         $index->setContent($content);
         $index->setTitle($title);
         $index->setDescription($description);
+        $index->setKeywords($keywords);
         $index->setSlug($url);
 
         if (!$index->id()) {

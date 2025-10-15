@@ -74,6 +74,13 @@
                 "en": "Description meta"
             }
         },
+        "keywords": {
+            "type": "text",
+            "label": {
+                "fr": "Mots-clés",
+                "en": "Keywords"
+            }
+        },
         "slug": {
             "type": "string",
             "label": {
@@ -107,6 +114,7 @@
                     "slug",
                     "title",
                     "description",
+                    "keywords",
                     "lang"
                 ],
                 "orders": [
@@ -149,6 +157,7 @@
                     "slug",
                     "title",
                     "description",
+                    "keywords",
                     "lang"
                 ],
                 "orders": [
@@ -186,6 +195,7 @@
                         "layout": {
                             "structure": [
                                 { "columns": [ 1, 1, 1, 1 ] },
+                                { "columns": [ 1, 1 ] },
                                 { "columns": [ 1 ] }
                             ]
                         },
@@ -194,6 +204,8 @@
                             "object_type",
                             "slug",
                             "lang",
+                            "description",
+                            "keywords",
                             "content"
                         ],
                         "priority": 100
