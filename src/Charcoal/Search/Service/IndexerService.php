@@ -38,7 +38,7 @@ class IndexerService
         $this->setTranslator($data['translator']);
         $this->setModelFactory($data['model/factory']);
         $this->setCollectionLoader($data['model/collection/loader']);
-        if (isset($data['base-url']) || !empty($data['base-url'])) {
+        if (isset($data['base-url']) && !empty($data['base-url'])) {
             $this->setBaseUrl($data['base-url']);
         }
     }
@@ -111,6 +111,7 @@ class IndexerService
             $url = rtrim($this->baseUrl(), '/') . '/' . ltrim($model->url($locale), '/');
             $res = $this->getCrawler()->get($url);
             if (!$res) {
+                $this->removeIndexedContentFromModelAndLocale($model, $locale);
                 continue;
             }
             $this->indexContent($res, [
@@ -136,7 +137,7 @@ class IndexerService
         $body = (string)$res->getBody();
 
         $docImp  = new \DOMImplementation();
-        $docType = $docImp->createDocumentType('html');
+        $docType = $docImp->createDocumentType('html', '', 'http://www.w3.org/1999/xhtml');
 
         $doc = $docImp->createDocument(null, '', $docType);
         $doc->encoding = 'UTF-8';
@@ -148,7 +149,7 @@ class IndexerService
         $xpath = new \DOMXPath($doc);
 
         // Getting meta tags
-        $titleNode = $doc->getElementsByTagName('title')[0];
+        $titleNode = $doc->getElementsByTagName('title')->item(0);
         $title     = '';
         if ($titleNode) {
             $title = trim($titleNode->textContent);
@@ -185,7 +186,7 @@ class IndexerService
         if ($this->indexElementId()) {
             $main = $doc->getElementById($this->indexElementId());
         } else {
-            $main = $doc->getElementsByTagName('body')[0];
+            $main = $doc->getElementsByTagName('body')->item(0);
         }
 
         if (!$main) {
@@ -223,7 +224,7 @@ class IndexerService
      *
      * @return void
      */
-    public function checkIndexContentTableExistance()
+    public function checkIndexContentTableExistence()
     {
         $model = $this->modelFactory()->create(IndexContent::class);
 
@@ -275,11 +276,30 @@ class IndexerService
         $q = 'DELETE FROM `%table` WHERE object_type = \'%type\' AND object_id = \'%id\'';
         $index = $this->modelFactory()->create(IndexContent::class);
 
-        $model->source()->dbQuery(
+        $index->source()->dbQuery(
             strtr($q, [
                 '%table' => $index->source()->table(),
                 '%type'  => $model->objType(),
                 '%id'    => $model->id(),
+            ])
+        );
+    }
+
+    /**
+     * @param RoutableInterface $model
+     * @return void
+     */
+    public function removeIndexedContentFromModelAndLocale(RoutableInterface $model, string $lang)
+    {
+        $q = 'DELETE FROM `%table` WHERE object_type = \'%type\' AND object_id = \'%id\' AND lang = \'%lang\'';
+        $index = $this->modelFactory()->create(IndexContent::class);
+
+        $index->source()->dbQuery(
+            strtr($q, [
+                '%table' => $index->source()->table(),
+                '%type'  => $model->objType(),
+                '%id'    => $model->id(),
+                '%lang'  => $lang,
             ])
         );
     }

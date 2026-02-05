@@ -107,7 +107,7 @@ class IndexContentScript extends CharcoalScript
      */
     public function run(RequestInterface $request, ResponseInterface $response)
     {
-        $this->getIndexer()->checkIndexContentTableExistance(); // Make sure the table exists with the proper values
+        $this->getIndexer()->checkIndexContentTableExistence(); // Make sure the table exists with the proper values
         $this->getIndexer()->deleteAllIndexes();
 
         $baseUrl    = $this->climate()->arguments->get('base_url');

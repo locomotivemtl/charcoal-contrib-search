@@ -2,8 +2,6 @@
 
 namespace Charcoal\Search\Mixin;
 
-use Charcoal\Search\Service\IndexerService;
-
 /**
  * Trait HasIndexableContentTrait
  *
