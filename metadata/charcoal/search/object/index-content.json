@@ -97,7 +97,8 @@
         }
     },
     "default_data": {
-        "key": "id"
+        "key": "id",
+        "revisionEnabled": false
     },
     "sources": {
         "default": {
