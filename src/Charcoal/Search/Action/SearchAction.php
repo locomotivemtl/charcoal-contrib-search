@@ -40,8 +40,10 @@ class SearchAction extends AbstractAction
      */
     public function run(RequestInterface $request, ResponseInterface $response)
     {
-        $params = $request->getParams();
-        $keyword = $params['keyword'];
+        $keyword = $request->getParam('keyword');
+        if (!$keyword) {
+            return $response->withStatus(400);
+        }
 
         $this->search->setKeyword($keyword);
         $this->search->setLang($this->translator()->getLocale());
